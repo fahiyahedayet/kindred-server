@@ -16,3 +16,29 @@ export const getCollections = async (): Promise<KindredCollections> => {
     eventJoins: db.collection<EventJoin>("event_joins"),
   };
 };
+
+export const createIndexes = async (): Promise<void> => {
+  const db = await connectDB();
+
+  await Promise.all([
+    db.collection<Event>("events").createIndex({ eventDate: 1 }),
+    db.collection<Event>("events").createIndex({
+      category: 1,
+      eventDate: 1,
+    }),
+    db.collection<Event>("events").createIndex({
+      creatorId: 1,
+      createdAt: -1,
+    }),
+    db.collection<EventJoin>("event_joins").createIndex(
+      { eventId: 1, userId: 1 },
+      { unique: true }
+    ),
+    db.collection<EventJoin>("event_joins").createIndex({
+      userId: 1,
+      joinedAt: -1,
+    }),
+  ]);
+
+  console.log("MongoDB indexes created successfully");
+};
