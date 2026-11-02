@@ -407,3 +407,80 @@ export const leaveEvent = async (req: Request, res: Response) => {
     return sendError(res, "Failed to leave this event.", 500);
   }
 };
+
+export const getMyEvents = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as AuthenticatedUser | undefined;
+
+    if (!user?.id) {
+      return sendError(res, "Authentication required.", 401);
+    }
+
+    const { events } = await getCollections();
+
+    const myEvents = await events
+      .find({ creatorId: user.id })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    return sendSuccess(
+      res,
+      "Your events fetched successfully.",
+      myEvents
+    );
+  } catch (error) {
+    console.error("Get my events error:", error);
+    return sendError(res, "Failed to fetch your events.", 500);
+  }
+};
+export const deleteEvent = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as AuthenticatedUser | undefined;
+    const eventIdParam = req.params.id;
+
+    if (!user?.id) {
+      return sendError(res, "Authentication required.", 401);
+    }
+
+    if (
+      typeof eventIdParam !== "string" ||
+      !/^[0-9a-fA-F]{24}$/.test(eventIdParam)
+    ) {
+      return sendError(res, "Invalid event ID.", 400);
+    }
+
+    const eventId = new ObjectId(eventIdParam);
+    const { events, eventJoins } = await getCollections();
+
+    const event = await events.findOne({
+      _id: eventId,
+      creatorId: user.id,
+    });
+
+    if (!event) {
+      return sendError(
+        res,
+        "Event not found or you are not allowed to delete it.",
+        404
+      );
+    }
+
+    const deleteResult = await events.deleteOne({
+      _id: eventId,
+      creatorId: user.id,
+    });
+
+    if (deleteResult.deletedCount === 0) {
+      return sendError(res, "Event could not be deleted.", 404);
+    }
+
+    await eventJoins.deleteMany({ eventId });
+
+    return sendSuccess(res, "Event deleted successfully.", {
+      eventId: eventId.toString(),
+    });
+  } catch (error) {
+    console.error("Delete event error:", error);
+    return sendError(res, "Failed to delete event.", 500);
+  }
+};
