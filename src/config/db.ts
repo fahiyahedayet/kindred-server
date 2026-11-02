@@ -10,7 +10,7 @@ if (!uri) {
   throw new Error("MONGODB_URI is missing from environment variables");
 }
 
-const client = new MongoClient(uri);
+export const client = new MongoClient(uri);
 
 let database: Db;
 

@@ -7,6 +7,8 @@ export type EventCategory =
   | "Donation"
   | "Community"
   | "Education"
+  | "Animal Welfare"
+  | "Healthcare"
   | "Other";
 
 export interface Event {

@@ -2,8 +2,10 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { toNodeHandler } from "better-auth/node";
 import { connectDB } from "./config/db.js";
 import { createIndexes } from "./config/collections.js";
+import { auth } from "./config/auth.js";
 import eventRoutes from "./routes/event.routes.js";
 
 const app = express();
@@ -17,6 +19,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
 
