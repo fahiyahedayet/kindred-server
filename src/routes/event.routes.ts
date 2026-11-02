@@ -4,6 +4,7 @@ import {
   createEvent,
   joinEvent,
   getJoinStatus,
+  getJoinedEvents,
 } from "../controllers/event.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -13,5 +14,6 @@ eventRoutes.get("/", getEvents);
 eventRoutes.post("/", requireAuth, createEvent);
 eventRoutes.post("/:id/join", requireAuth, joinEvent);
 eventRoutes.get("/:id/join-status", requireAuth, getJoinStatus);
+eventRoutes.get("/joined", requireAuth, getJoinedEvents);
 
 export default eventRoutes;

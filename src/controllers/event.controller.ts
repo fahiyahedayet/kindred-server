@@ -296,3 +296,58 @@ export const getJoinStatus = async (req: Request, res: Response) => {
     return sendError(res, "Failed to retrieve join status.", 500);
   }
 };
+
+export const getJoinedEvents = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as AuthenticatedUser | undefined;
+
+    if (!user?.id) {
+      return sendError(res, "Authentication required.", 401);
+    }
+
+    const { events, eventJoins } = await getCollections();
+
+    const joins = await eventJoins
+      .find({ userId: user.id })
+      .sort({ joinedAt: -1 })
+      .toArray();
+
+    if (joins.length === 0) {
+      return sendSuccess(res, "Joined events retrieved successfully.", []);
+    }
+
+    const eventIds = joins.map((join) => join.eventId);
+
+    const joinedEvents = await events
+      .find({ _id: { $in: eventIds } })
+      .toArray();
+
+    const eventMap = new Map(
+      joinedEvents.map((event) => [event._id!.toString(), event])
+    );
+
+    const result = joins
+      .map((join) => {
+        const event = eventMap.get(join.eventId.toString());
+
+        if (!event) {
+          return null;
+        }
+
+        return {
+          ...event,
+          joinedAt: join.joinedAt,
+        };
+      })
+      .filter((event) => event !== null);
+
+    return sendSuccess(
+      res,
+      "Joined events retrieved successfully.",
+      result
+    );
+  } catch (error) {
+    console.error("Get joined events error:", error);
+    return sendError(res, "Failed to retrieve joined events.", 500);
+  }
+};
