@@ -1,7 +1,7 @@
-
+import { MongoServerError, ObjectId } from "mongodb";
 import type { Request, Response } from "express";
 import { getCollections } from "../config/collections.js";
-import type { Event, EventCategory } from "../types/event.js";
+import type { Event, EventCategory, EventJoin } from "../types/event.js";
 import type { AuthenticatedUser } from "../middleware/auth.middleware.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
@@ -191,5 +191,71 @@ export const createEvent = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Create event error:", error);
     return sendError(res, "Failed to create event.", 500);
+  }
+};
+
+export const joinEvent = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as AuthenticatedUser | undefined;
+    const eventIdParam = req.params.id;
+
+    if (typeof eventIdParam !== "string") {
+      return sendError(res, "Invalid event ID.", 400);
+    }
+
+    if (!user?.id) {
+      return sendError(res, "Authentication required.", 401);
+    }
+
+    if (!/^[0-9a-fA-F]{24}$/.test(eventIdParam)) {
+      return sendError(res, "Invalid event ID.", 400);
+    }
+
+    const eventId = new ObjectId(eventIdParam);
+    const { events, eventJoins } = await getCollections();
+
+    const event = await events.findOne({ _id: eventId });
+
+    if (!event) {
+      return sendError(res, "Event not found.", 404);
+    }
+
+    if (event.eventDate <= new Date()) {
+      return sendError(res, "You cannot join a past event.", 400);
+    }
+
+    const eventJoin: EventJoin = {
+      eventId,
+      userId: user.id,
+      userEmail: user.email || "",
+      joinedAt: new Date(),
+    };
+
+    await eventJoins.insertOne(eventJoin);
+
+    await events.updateOne(
+      { _id: eventId },
+      {
+        $inc: { volunteerCount: 1 },
+        $set: { updatedAt: new Date() },
+      }
+    );
+
+    return sendSuccess(
+      res,
+      "You have successfully joined this event!",
+      {
+        eventId: eventId.toString(),
+        volunteerCount: event.volunteerCount + 1,
+      },
+      201
+    );
+  } catch (error) {
+    if (error instanceof MongoServerError && error.code === 11000) {
+      return sendError(res, "You have already joined this event.", 409);
+    }
+
+    console.error("Join event error:", error);
+    return sendError(res, "Failed to join this event.", 500);
   }
 };
