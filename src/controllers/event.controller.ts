@@ -351,3 +351,59 @@ export const getJoinedEvents = async (req: Request, res: Response) => {
     return sendError(res, "Failed to retrieve joined events.", 500);
   }
 };
+
+export const leaveEvent = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as AuthenticatedUser | undefined;
+    const eventIdParam = req.params.id;
+
+    if (!user?.id) {
+      return sendError(res, "Authentication required.", 401);
+    }
+
+    if (
+      typeof eventIdParam !== "string" ||
+      !/^[0-9a-fA-F]{24}$/.test(eventIdParam)
+    ) {
+      return sendError(res, "Invalid event ID.", 400);
+    }
+
+    const eventId = new ObjectId(eventIdParam);
+    const { events, eventJoins } = await getCollections();
+
+    const event = await events.findOne({ _id: eventId });
+
+    if (!event) {
+      return sendError(res, "Event not found.", 404);
+    }
+
+    if (new Date(event.eventDate) <= new Date()) {
+      return sendError(res, "You cannot leave a completed event.", 400);
+    }
+
+    const leaveResult = await eventJoins.deleteOne({
+      eventId,
+      userId: user.id,
+    });
+
+    if (leaveResult.deletedCount === 0) {
+      return sendError(res, "You have not joined this event.", 404);
+    }
+
+    await events.updateOne(
+      { _id: eventId, volunteerCount: { $gt: 0 } },
+      {
+        $inc: { volunteerCount: -1 },
+        $set: { updatedAt: new Date() },
+      }
+    );
+
+    return sendSuccess(res, "You have successfully left this event.", {
+      eventId: eventId.toString(),
+      volunteerCount: Math.max(0, event.volunteerCount - 1),
+    });
+  } catch (error) {
+    console.error("Leave event error:", error);
+    return sendError(res, "Failed to leave this event.", 500);
+  }
+};
