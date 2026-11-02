@@ -259,3 +259,40 @@ export const joinEvent = async (req: Request, res: Response) => {
     return sendError(res, "Failed to join this event.", 500);
   }
 };
+
+
+export const getJoinStatus = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as AuthenticatedUser | undefined;
+    const eventIdParam = req.params.id;
+
+    if (!user?.id) {
+      return sendError(res, "Authentication required.", 401);
+    }
+
+    if (typeof eventIdParam !== "string" || !/^[0-9a-fA-F]{24}$/.test(eventIdParam)) {
+      return sendError(res, "Invalid event ID.", 400);
+    }
+
+    const eventId = new ObjectId(eventIdParam);
+    const { events, eventJoins } = await getCollections();
+
+    const event = await events.findOne({ _id: eventId });
+
+    if (!event) {
+      return sendError(res, "Event not found.", 404);
+    }
+
+    const existingJoin = await eventJoins.findOne({
+      eventId,
+      userId: user.id,
+    });
+
+    return sendSuccess(res, "Join status retrieved successfully.", {
+      hasJoined: Boolean(existingJoin),
+    });
+  } catch (error) {
+    console.error("Get join status error:", error);
+    return sendError(res, "Failed to retrieve join status.", 500);
+  }
+};
