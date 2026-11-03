@@ -26,6 +26,7 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     clientURL || "http://localhost:3000",
+    "https://kindred-client-five.vercel.app",
   ],
 
   emailAndPassword: {
@@ -37,13 +38,6 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    },
-  },
-
-  account: {
-    accountLinking: {
-      enabled: true,
-      trustedProviders: ["google"],
     },
   },
 

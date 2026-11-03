@@ -8,15 +8,24 @@ import { createIndexes } from "./config/collections.js";
 import { auth } from "./config/auth.js";
 import eventRoutes from "./routes/event.routes.js";
 
+
 const app = express();
 
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  
+  "https://kindred-client-five.vercel.app",
+];
+
 app.use(
   cors({
-    origin: CLIENT_URL,
+    origin: allowedOrigins,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
