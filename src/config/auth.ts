@@ -32,6 +32,20 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 6,
   },
+  user: {
+    additionalFields: {
+      location: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      bio: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+    },
+  },
 
   plugins: [jwt()],
 });
