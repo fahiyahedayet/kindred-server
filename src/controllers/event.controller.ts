@@ -484,3 +484,148 @@ export const deleteEvent = async (req: Request, res: Response) => {
     return sendError(res, "Failed to delete event.", 500);
   }
 };
+export const updateEvent = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as AuthenticatedUser | undefined;
+    const eventIdParam = req.params.id;
+
+    if (!user?.id) {
+      return sendError(res, "Authentication required.", 401);
+    }
+
+    if (
+      typeof eventIdParam !== "string" ||
+      !/^[0-9a-fA-F]{24}$/.test(eventIdParam)
+    ) {
+      return sendError(res, "Invalid event ID.", 400);
+    }
+
+    const {
+      title,
+      description,
+      category,
+      imageUrl,
+      location,
+      eventDate,
+      tags,
+    } = req.body;
+
+    const validCategories = [
+      "Cleanup",
+      "Plantation",
+      "Donation",
+      "Community",
+      "Education",
+      "Animal Welfare",
+      "Healthcare",
+      "Other",
+    ];
+
+    if (
+      typeof title !== "string" ||
+      title.trim().length < 5 ||
+      title.trim().length > 80
+    ) {
+      return sendError(res, "Title must be between 5 and 80 characters.", 400);
+    }
+
+    if (
+      typeof description !== "string" ||
+      description.trim().length < 30 ||
+      description.trim().length > 1500
+    ) {
+      return sendError(
+        res,
+        "Description must be between 30 and 1500 characters.",
+        400
+      );
+    }
+
+    if (!validCategories.includes(category)) {
+      return sendError(res, "Please select a valid category.", 400);
+    }
+
+    if (typeof location !== "string" || !location.trim()) {
+      return sendError(res, "Location is required.", 400);
+    }
+
+    const parsedDate = new Date(eventDate);
+
+    if (
+      !eventDate ||
+      Number.isNaN(parsedDate.getTime()) ||
+      parsedDate <= new Date()
+    ) {
+      return sendError(res, "Please select a future event date.", 400);
+    }
+
+    if (imageUrl && typeof imageUrl !== "string") {
+      return sendError(res, "Invalid image URL.", 400);
+    }
+
+    if (imageUrl) {
+      try {
+        const parsedUrl = new URL(imageUrl);
+
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+          return sendError(res, "Image URL must use HTTP or HTTPS.", 400);
+        }
+      } catch {
+        return sendError(res, "Please provide a valid image URL.", 400);
+      }
+    }
+
+    if (
+      !Array.isArray(tags) ||
+      tags.length > 5 ||
+      !tags.every(
+        (tag: unknown) =>
+          typeof tag === "string" &&
+          tag.trim().length > 0 &&
+          tag.trim().length <= 25
+      )
+    ) {
+      return sendError(res, "Please provide up to 5 valid tags.", 400);
+    }
+
+    const eventId = new ObjectId(eventIdParam);
+    const { events } = await getCollections();
+
+    const result = await events.updateOne(
+      {
+        _id: eventId,
+        creatorId: user.id,
+      },
+      {
+        $set: {
+          title: title.trim(),
+          description: description.trim(),
+          category,
+          imageUrl: imageUrl?.trim() || "",
+          location: location.trim(),
+          eventDate: parsedDate,
+          tags: tags.map((tag: string) => tag.trim()),
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return sendError(
+        res,
+        "Event not found or you are not allowed to update it.",
+        404
+      );
+    }
+
+    const updatedEvent = await events.findOne({
+      _id: eventId,
+      creatorId: user.id,
+    });
+
+    return sendSuccess(res, "Event updated successfully.", updatedEvent);
+  } catch (error) {
+    console.error("Update event error:", error);
+    return sendError(res, "Failed to update event.", 500);
+  }
+};

@@ -8,6 +8,7 @@ import {
   getJoinedEvents,
   leaveEvent,
   deleteEvent,
+  updateEvent,
 } from "../controllers/event.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -21,6 +22,8 @@ eventRoutes.get("/joined", requireAuth, getJoinedEvents);
 eventRoutes.delete("/:id/leave", requireAuth, leaveEvent);
 eventRoutes.get("/my-events", requireAuth, getMyEvents);
 eventRoutes.delete("/:id", requireAuth, deleteEvent);
+eventRoutes.put("/:id", requireAuth, updateEvent);
+
 
 
 export default eventRoutes;
