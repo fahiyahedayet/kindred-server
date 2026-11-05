@@ -46,6 +46,7 @@ export const auth = betterAuth({
       location: {
         type: "string",
         required: false,
+        
         input: true,
       },
       bio: {
