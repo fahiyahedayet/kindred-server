@@ -16,12 +16,20 @@ const allowedCategories: EventCategory[] = [
   "Other",
 ];
 
+
 export const getEvents = async (req: Request, res: Response) => {
   try {
     const { events } = await getCollections();
 
     const search = req.query.search?.toString().trim() || "";
     const category = req.query.category?.toString().trim() || "";
+    const upcoming = req.query.upcoming?.toString() === "true";
+
+    const requestedLimit = Number(req.query.limit);
+    const limit =
+      Number.isInteger(requestedLimit) && requestedLimit > 0
+        ? Math.min(requestedLimit, 100)
+        : undefined;
 
     const filter: Record<string, unknown> = {};
 
@@ -39,21 +47,25 @@ export const getEvents = async (req: Request, res: Response) => {
       filter.category = category;
     }
 
-    const eventList = await events
-      .find(filter)
-      .sort({ eventDate: 1 })
-      .toArray();
+    if (upcoming) {
+      filter.eventDate = { $gt: new Date() };
+    }
 
-    return sendSuccess(
-      res,
-      "Events retrieved successfully",
-      eventList
-    );
+    let query = events.find(filter).sort({ createdAt: -1 });
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    const eventList = await query.toArray();
+
+    return sendSuccess(res, "Events retrieved successfully", eventList);
   } catch (error) {
     console.error("Get events error:", error);
     return sendError(res, "Failed to retrieve events.", 500);
   }
 };
+
 
 export const createEvent = async (req: Request, res: Response) => {
   try {
