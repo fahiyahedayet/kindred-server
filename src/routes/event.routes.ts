@@ -10,6 +10,7 @@ import {
   deleteEvent,
   updateEvent,
 } from "../controllers/event.controller.js";
+
 import { requireAuth } from "../middleware/auth.middleware.js";
 
 const eventRoutes = Router();
