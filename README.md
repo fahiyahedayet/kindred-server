@@ -22,6 +22,10 @@ Kindred Server provides the backend services for the Kindred platform.
 
 Built with Express, TypeScript, and MongoDB, it handles event management, user authentication, and community participation.
 
+## Related Repository
+
+- **Kindred Client:** [View the Client Repository](https://github.com/fahiyahedayet/kindred-client)
+
 ## ✨ Features
 
 - 📅 **Event Management** — Create, retrieve, update, and delete events.
